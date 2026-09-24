@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisi Mercato Turistico - Pescara 2025</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 350px;
+      max-height: 400px;
+    }
+    @media (min-width: 768px) {
+      .chart-container { height: 400px; }
+    }
+    .nav-active {
+      background-color: #e0f2fe;
+      color: #0284c7;
+      font-weight: 600;
+    }
+    .sidebar {
+      transition: transform 0.3s ease-in-out;
+    }
+    @media (max-width: 1023px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+    }
+  </style>
+
+  <!-- Chosen Palette: Coastal Calm (BG: gray-50, Text: gray-800, Accent: sky-600, Cards: white) -->
+  <!-- Application Structure Plan: L'app è strutturata come un cruscotto interattivo con navigazione laterale (a scomparsa su mobile). Le sezioni sono: 'Cruscotto' (KPI principali e stagionalità), 'Analisi di Mercato' (flussi e offerta), 'Analisi Competitiva' (prezzi e occupazione interattivi per tipologia, SWOT), 'Domanda e Trend' (driver e calendario), 'Strategia' (modelli, target, differenziazione) e 'Piano d'Azione'. Questa struttura a schede tematiche è stata scelta per permettere all'investitore di navigare rapidamente tra i diversi livelli di analisi (dal macro al micro) e di interagire con i dati (es. filtrare per tipologia di immobile), rendendo l'esplorazione più efficiente e mirata rispetto a un report lineare. -->
+  <!-- Visualization & Content Choices: - KPI (Cruscotto): Goal: Informare. Method: Cards HTML/Tailwind. Interaction: None. Justification: Overview rapido. - Stagionalità (Cruscotto): Goal: Mostrare trend. Method: Line Chart (Chart.js). Interaction: Hover. Justification: Immediata visualizzazione picchi/valli. - Provenienza Turisti (Mercato): Goal: Proporzioni. Method: Doughnut Chart (Chart.js). Interaction: Hover. Justification: Chiara divisione Italia/Estero. - Offerta Ricettiva (Mercato): Goal: Confrontare. Method: Bar Chart (Chart.js). Interaction: Hover. Justification: Mostra quota di mercato extra-alberghiero. - Prezzi & Occupazione (Competitiva): Goal: Confrontare/Analizzare. Method: 2 Bar Charts (Chart.js). Interaction: Dropdown select ('propertyTypeSelector') che aggiorna dinamicamente entrambi i grafici. Justification: Consente all'investitore di analizzare redditività e pressione competitiva per la tipologia di immobile specifica di suo interesse. - SWOT, Driver, Strategia, Piano d'Azione: Goal: Organizzare/Informare. Method: Liste e card HTML/Tailwind. Interaction: None. Justification: Contenuti testuali e strategici resi chiari e leggibili. - Calendario (Domanda): Goal: Informare. Method: Tabella HTML/Tailwind. Interaction: None. Justification: Fornisce date azionabili. -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="h-full bg-gray-50 text-gray-800 flex flex-col lg:flex-row min-h-screen">
+
+  <!-- Mobile Top Bar -->
+  <div class="lg:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center font-bold text-white text-sm">
+        P25
+      </div>
+      <span class="font-bold text-base">InvestPescara 2025</span>
+    </div>
+    <button onclick="toggleSidebar()" class="p-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 focus:outline-none">
+      &#x2630; Menu
+    </button>
+  </div>
+
+  <!-- Sidebar Overlay for Mobile -->
+  <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden lg:hidden"></div>
+
+  <!-- Sidebar Navigation -->
+  <aside id="sidebar" class="sidebar fixed lg:static inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-50 flex flex-col justify-between shrink-0 shadow-lg lg:shadow-none">
+    <div>
+      <!-- Sidebar Header -->
+      <div class="p-5 border-b border-gray-100 flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-sky-600 flex items-center justify-center font-extrabold text-white text-lg shadow-sm">
+          P25
+        </div>
+        <div>
+          <h1 class="font-bold text-slate-900 text-sm leading-tight">Analisi Pescara</h1>
+          <p class="text-[11px] text-gray-500">Report Investitori 2025</p>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="p-3 space-y-1 text-sm font-medium">
+        <button onclick="showSection('cruscotto')" id="nav-cruscotto" class="nav-link w-full text-left px-3 py-2.5 rounded-lg transition-colors nav-active flex items-center space-x-3">
+          <span>&#x1F4CA;</span>
+          <span>Cruscotto KPI</span>
+        </button>
+
+        <button onclick="showSection('mercato')" id="nav-mercato" class="nav-link w-full text-left px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center space-x-3">
+          <span>&#x1F4C8;</span>
+          <span>Analisi di Mercato</span>
+        </button>
+
+        <button onclick="showSection('competitiva')" id="nav-competitiva" class="nav-link w-full text-left px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center space-x-3">
+          <span>&#x1F3E8;</span>
+          <span>Analisi Competitiva</span>
+        </button>
+
+        <button onclick="showSection('domanda')" id="nav-domanda" class="nav-link w-full text-left px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center space-x-3">
+          <span>&#x1F4C5;</span>
+          <span>Domanda & Trend</span>
+        </button>
+
+        <button onclick="showSection('strategia')" id="nav-strategia" class="nav-link w-full text-left px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center space-x-3">
+          <span>&#x1F3AF;</span>
+          <span>Strategia Investitore</span>
+        </button>
+
+        <button onclick="showSection('piano')" id="nav-piano" class="nav-link w-full text-left px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center space-x-3">
+          <span>&#x1F680;</span>
+          <span>Piano d'Azione</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Sidebar Footer Badge -->
+    <div class="p-4 border-t border-gray-100 bg-gray-50/50">
+      <div class="bg-sky-50 border border-sky-200 rounded-lg p-3 text-xs text-sky-800 space-y-1">
+        <div class="font-bold">Target 2025 Attivo</div>
+        <p class="text-[11px] text-sky-700 leading-tight">Focus su Subaffitto, Buy-to-Let e Property Management.</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- Header Banner -->
+    <header class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-1 rounded-full mb-2">
+          <span>&#x1F4DA; Studio di Fattibilità Immobiliare</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Pescara 2025: Analisi di Mercato Turistico</h2>
+        <p class="text-sm text-gray-600 mt-1">
+          Valutazione strategica per investitori in affitti brevi: opportunità, matrici prezzi/occupazione, driver di domanda e modelli finanziari.
+        </p>
+      </div>
+
+      <div class="flex items-center space-x-2 shrink-0">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+          &#x25CF; Anno di Riferimento 2025
+        </span>
+      </div>
+    </header>
+
+    <!-- SECTION 1: CRUSCOTTO (KPI & STAGIONALITÀ) -->
+    <section id="sec-cruscotto" class="content-section space-y-6">
+      
+      <!-- Intro Paragraph -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-1">Panoramica Strategica del Cruscotto</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">
+          Pescara si conferma il principale hub economico e di connessione dell'Abruzzo. Il mercato turistico 2025 mostra una solida crescita guidata dalla costante espansione delle rotte internazionali dell'Aeroporto d'Abruzzo (Ryanair) e dalla transizione verso la <strong>"Nuova Pescara 2027"</strong>. Di seguito le metriche macro ed il trend mensile di occupazione da monitorare.
+        </p>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-sky-300 transition-all">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Presenze Abruzzo</div>
+          <div class="text-2xl font-black text-gray-900">8.8M+</div>
+          <p class="text-xs text-emerald-600 font-semibold mt-1">+25.59% crescita presenze storiche</p>
+          <p class="text-[11px] text-gray-400 mt-0.5">Focus costa e hub pescarese</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-sky-300 transition-all">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Permanenza Stranieri</div>
+          <div class="text-2xl font-black text-gray-900">3.34 Notti</div>
+          <p class="text-xs text-emerald-600 font-semibold mt-1">vs 2.88 notti mercato italiano</p>
+          <p class="text-[11px] text-gray-400 mt-0.5">I turisti esteri soggiornano più a lungo</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-sky-300 transition-all">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Contrazione Offerta OTA</div>
+          <div class="text-2xl font-black text-gray-900">-36.4%</div>
+          <p class="text-xs text-rose-600 font-semibold mt-1">Uscita host amatoriali per norma CIN</p>
+          <p class="text-[11px] text-gray-400 mt-0.5">Opportunità per operatori strutturati</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-sky-300 transition-all">
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">ADR Medio Generico</div>
+          <div class="text-2xl font-black text-gray-900">115 €</div>
+          <p class="text-xs text-sky-600 font-semibold mt-1">Picco Agosto: fino a 210 €/notte</p>
+          <p class="text-[11px] text-gray-400 mt-0.5">Media ponderata su tutte le tipologie</p>
+        </div>
+
+      </div>
+
+      <!-- Seasonality Chart -->
+      <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+          <div>
+            <h3 class="font-bold text-gray-900 text-base">Stagionalità Turistica: Occupazione (%) e Tariffe Mediamente Applicate (€)</h3>
+            <p class="text-xs text-gray-500">Andamento stimato per i 12 mesi dell'anno 2025</p>
+          </div>
+          <div class="text-xs font-medium text-sky-600 bg-sky-50 px-2.5 py-1 rounded-md">
+            Picco Estivo: Luglio - Agosto
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="seasonalityChart"></canvas>
+        </div>
+        <p class="text-xs text-gray-500 italic text-center">
+          Fonte: Rielaborazione dati sintetici AirDNA / ISTAT per la destinazione Pescara.
+        </p>
+      </div>
+
+    </section>
+
+    <!-- SECTION 2: ANALISI DI MERCATO -->
+    <section id="sec-mercato" class="content-section space-y-6 hidden">
+      
+      <!-- Intro Paragraph -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-1">Analisi dei Flussi e della Struttura dell'Offerta</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">
+          In questa sezione vengono analizzati in dettaglio i volumi di arrivi e presenze, la ripartizione geografica dei turisti (nazionale vs internazionale) e la composizione dell'offerta ricettiva cittadina, evidenziando il netto dominio del settore extra-alberghiero su quello alberghiero.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Doughnut Chart: Turisti Provenienza -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+          <div class="border-b border-gray-100 pb-3">
+            <h3 class="font-bold text-gray-900 text-base">Provenienza dei Turisti (Mercato Italiano vs Estero)</h3>
+            <p class="text-xs text-gray-500">Quota di pernottamenti complessivi nel bacino pescarese</p>
+          </div>
+
+          <div class="chart-container" style="height: 280px;">
+            <canvas id="provenienzaChart"></canvas>
+          </div>
+
+          <div class="bg-gray-50 p-3 rounded-lg text-xs space-y-1 text-gray-600">
+            <div class="font-bold text-gray-800">&#x1F4CA; Key Insights Provenienza:</div>
+            <p><strong>Mercato Internazionale (35%):</strong> In forte crescita (+40.67%). Mercati target: Polonia, Lituania, Germania, Albania, Spagna e UK.</p>
+            <p><strong>Mercato Italiano (65%):</strong> Provenienza prevalente da Lazio, Campania, Lombardia ed Emilia-Romagna per turismo balneare e business.</p>
+          </div>
+        </div>
+
+        <!-- Bar Chart: Offerta Ricettiva -->
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+          <div class="border-b border-gray-100 pb-3">
+            <h3 class="font-bold text-gray-900 text-base">Composizione Offerta Ricettiva (Posti Letto / Unità)</h3>
+            <p class="text-xs text-gray-500">Confronto Extra-Alberghiero vs Alberghiero</p>
+          </div>
+
+          <div class="chart-container" style="height: 280px;">
+            <canvas id="offertaChart"></canvas>
+          </div>
+
+          <div class="bg-gray-50 p-3 rounded-lg text-xs space-y-1 text-gray-600">
+            <div class="font-bold text-gray-800">&#x1F3E8; Key Insights Offerta:</div>
+            <p>L'<strong>84.9%</strong> degli annunci extra-alberghieri su OTA è costituito da appartamenti interi. Gli Hotel soffrono di limitazioni strutturali e assenza di parcheggio nei nuclei storici.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- SECTION 3: ANALISI COMPETITIVA -->
+    <section id="sec-competitiva" class="content-section space-y-6 hidden">
+      
+      <!-- Intro Paragraph -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-1">Analisi Competitiva: Prezzi, Occupazione e SWOT</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">
+          Seleziona dal menu a tendina sottostante la <strong>tipologia di immobile</strong> di tuo interesse per visualizzare dinamicamente l'ADR (Prezzo medio per notte) e il tasso medio di occupazione stimato, confrontandoli con i dati generali e le altre tipologie.
+        </p>
+      </div>
+
+      <!-- Property Type Selector Bar -->
+      <div class="bg-white p-4 rounded-xl border border-sky-200 bg-sky-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <label for="propertyTypeSelector" class="block text-xs font-bold uppercase tracking-wider text-sky-800 mb-1">
+            Seleziona Tipologia Immobile:
+          </label>
+          <p class="text-xs text-gray-600">Filtra le metriche di rendimento e pressione competitiva</p>
+        </div>
+
+        <select id="propertyTypeSelector" onchange="updateCompetitiveCharts()" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-sky-500 focus:outline-none shadow-sm min-w-[220px]">
+          <option value="all">Tutte le Tipologie (Generico)</option>
+          <option value="affittacamere">Affittacamere / B&B (Camera)</option>
+          <option value="bilocale">Bilocale (1 Camera / 4 pax)</option>
+          <option value="trilocale">Trilocale (2 Camere / 6 pax)</option>
+          <option value="quadrilocale">Quadrilocale (3 Camere / 8 pax)</option>
+          <option value="villa">Villa / Fronte Mare Premium</option>
+        </select>
+      </div>
+
+      <!-- Interactive Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
+          <h3 id="prezziChartTitle" class="font-bold text-gray-900 text-base border-b border-gray-100 pb-2">
+            Prezzo Medio per Notte (ADR - €)
+          </h3>
+          <div class="chart-container" style="height: 280px;">
+            <canvas id="prezziChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-3">
+          <h3 id="occupazioneChartTitle" class="font-bold text-gray-900 text-base border-b border-gray-100 pb-2">
+            Tasso di Occupazione Stimato (%)
+          </h3>
+          <div class="chart-container" style="height: 280px;">
+            <canvas id="occupazioneChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SWOT Analysis Table / Cards -->
+      <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+        <h3 class="font-bold text-gray-900 text-lg border-b border-gray-100 pb-2">SWOT Analysis: Punti di Forza e Debolezza dei Competitor</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          
+          <div class="p-4 rounded-lg bg-emerald-50/50 border border-emerald-200 space-y-2">
+            <h4 class="font-bold text-emerald-900 text-sm flex items-center space-x-2">
+              <span>&#x2705;</span>
+              <span>Punti di Forza dei Competitor Attuali</span>
+            </h4>
+            <ul class="list-disc list-inside text-emerald-800 space-y-1 leading-relaxed">
+              <li>Hotel e Resort vantano posizioni primarie direttamente sulla riviera o al centro.</li>
+              <li>Presenza consolidata sulle OTA tradizionali (Booking.com) con volumi di recensioni storiche.</li>
+              <li>Gli host privati amatoriali offrono tariffe aggressive d'inverno per coprire le spese.</li>
+            </ul>
+          </div>
+
+          <div class="p-4 rounded-lg bg-rose-50/50 border border-rose-200 space-y-2">
+            <h4 class="font-bold text-rose-900 text-sm flex items-center space-x-2">
+              <span>&#x274C;</span>
+              <span>Criticità & Debolezze (Opportunità d'Ingresso)</span>
+            </h4>
+            <ul class="list-disc list-inside text-rose-800 space-y-1 leading-relaxed">
+              <li><strong>Arredi obsoleti e assenza di Home Staging:</strong> Gran parte degli appartamenti ha arredi datati.</li>
+              <li><strong>Assenza di Self Check-in:</strong> Gestione manuale delle chiavi con rigidi orari di arrivo.</li>
+              <li><strong>Mancanza di Revenue Management:</strong> Listini prezzi statici (listino piatto stagione).</li>
+              <li><strong>Panico normativo CIN:</strong> Centinaia di piccoli proprietari stanno lasciando il mercato per evitare sanzioni.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SECTION 4: DOMANDA E TREND -->
+    <section id="sec-domanda" class="content-section space-y-6 hidden">
+      
+      <!-- Intro Paragraph -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-1">Motivazioni di Viaggio, Canali e Calendario 2025</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">
+          Pescara attira un turismo multi-target: balneare nei mesi estivi, ciclo-turistico grazie alla <strong>Via Verde dei Trabocchi</strong>, culturale per festival storici ed enogastronomico. Di seguito trovi l'analisi delle recensioni e il calendario preciso con le date a maggior potenziale di incasso per il 2025.
+        </p>
+      </div>
+
+      <!-- Drivers & OTAs Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-2">
+          <h4 class="font-bold text-gray-900 text-sm flex items-center space-x-2">
+            <span>&#x1F3D6;</span>
+            <span>Motivazioni Principali</span>
+          </h4>
+          <p class="text-gray-600 leading-relaxed">
+            Spiagge attrezzate per famiglie, cicloturismo lungo la Costa dei Trabocchi (>40 km di pista ciclopedonale), enogastronomia tipica (arrosticini, Montepulciano) e turismo d'affari/universitario (Portanuova) durante l'inverno.
+          </p>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-2">
+          <h4 class="font-bold text-gray-900 text-sm flex items-center space-x-2">
+            <span>&#x1F4F1;</span>
+            <span>Canali di Prenotazione</span>
+          </h4>
+          <p class="text-gray-600 leading-relaxed">
+            <strong>Booking.com (55%)</strong> domina la quota stranieri e viaggiatori italiani tradizionali. <strong>Airbnb (35%)</strong> intercetta giovani e coppie internazionali. Siti diretti e agenzie locali coprono il restante 10%.
+          </p>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-2">
+          <h4 class="font-bold text-gray-900 text-sm flex items-center space-x-2">
+            <span>&#x2B50;</span>
+            <span>Recensioni & Trend</span>
+          </h4>
+          <p class="text-gray-600 leading-relaxed">
+            Punti apprezzati: vicinanza al mare, pulizia, aria condizionata e Wi-Fi veloce per <em>smart working</em>. Criticità ricorrenti nei competitor: rumore, difficoltà di parcheggio, host poco reattivi.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Opportunities Calendar 2025 Table -->
+      <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+        <div class="border-b border-gray-100 pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-gray-900 text-lg">Calendario Date Strategiche Opportunità 2025</h3>
+            <p class="text-xs text-gray-500">Aumenta le tariffe (ADR) ed imposta uno stay minimo (MinLOS) in queste finestre</p>
+          </div>
+          <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2.5 py-1 rounded">High Revenue Dates</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-gray-100 text-gray-700 uppercase font-bold border-b border-gray-200">
+                <th class="p-3">Periodo / Data 2025</th>
+                <th class="p-3">Evento / Driver di Domanda</th>
+                <th class="p-3">Azione Strategica Suggerita</th>
+                <th class="p-3">Moltiplicatore Tariffa</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 text-gray-700">
+              <tr>
+                <td class="p-3 font-bold text-sky-800 bg-sky-50/30">18 - 22 Aprile 2025</td>
+                <td class="p-3">Pasqua e Pasquetta (Avvio Stagione Primavera)</td>
+                <td class="p-3">MinLOS 3 notti, target turisti del centro Italia e stranieri low-cost.</td>
+                <td class="p-3 font-bold text-emerald-600">+25%</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-bold text-sky-800 bg-sky-50/30">24 Aprile - 4 Maggio 2025</td>
+                <td class="p-3">Super-Ponte 25 Aprile & 1° Maggio</td>
+                <td class="p-3">Pacchetti per cicloturisti sulla Via Verde dei Trabocchi.</td>
+                <td class="p-3 font-bold text-emerald-600">+35%</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-bold text-sky-800 bg-sky-50/30">30 Maggio - 2 Giugno 2025</td>
+                <td class="p-3">Ponte della Festa della Repubblica</td>
+                <td class="p-3">Apertura ufficiale stabilimenti balneari, MinLOS 3 notti.</td>
+                <td class="p-3 font-bold text-emerald-600">+40%</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-bold text-sky-800 bg-sky-50/30">Luglio 2025 (Date Pescara Jazz)</td>
+                <td class="p-3">Pescara Jazz Festival & Premio Flaiano</td>
+                <td class="p-3">Domanda culturale anelastica altospendente nei quartieri centrali.</td>
+                <td class="p-3 font-bold text-emerald-600">+80%</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-bold text-sky-800 bg-sky-50/30">8 - 18 Agosto 2025</td>
+                <td class="p-3">Settimana di Ferragosto (Apice Estivo)</td>
+                <td class="p-3">MinLOS 5-7 notti obbligatorio. Saturazione totale della costa.</td>
+                <td class="p-3 font-bold text-emerald-600">+120% / +150%</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-bold text-sky-800 bg-sky-50/30">Ottobre - Novembre 2025</td>
+                <td class="p-3">Partite Serie C (Delfino) & Sessioni Laurea / Tribunale</td>
+                <td class="p-3">Rimozione MinLOS (accettare 1 notte) per massimizzare occupazione infra-settimanale.</td>
+                <td class="p-3 font-bold text-gray-600">Base Rate</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SECTION 5: STRATEGIA INVESTITORE -->
+    <section id="sec-strategia" class="content-section space-y-6 hidden">
+      
+      <!-- Intro Paragraph -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-1">Analisi Strategica per il Nuovo Investitore Immobiliare</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">
+          Valutazione comparativa delle 3 modalità di ingresso nel mercato di Pescara (Subaffitto, Property Management, Acquisto a Reddito), posizionamento del target cliente profittevole, tipologie di immobile su cui investire e fattori di differenziazione unica (USP).
+        </p>
+      </div>
+
+      <!-- 3 Investment Vehicles Comparison Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3 flex flex-col justify-between">
+          <div>
+            <span class="bg-sky-100 text-sky-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded">Modello A</span>
+            <h4 class="font-bold text-gray-900 text-base mt-1">Affitto e Subaffitto (Rent-to-Rent)</h4>
+            <p class="text-xs text-gray-600 mt-2 leading-relaxed">
+              Prendere in locazione un immobile con contratto 4+4 ad uso subaffitto o transitorio e riaffittarlo per periodi brevi.
+            </p>
+            <ul class="mt-3 text-xs space-y-1 text-gray-600">
+              <li>&#x2705; CAPEX contenuto (~5.000€ - 8.000€ tra arredi e cauzioni).</li>
+              <li>&#x2705; ROI percentuale elevatissimo sul capitale investito.</li>
+              <li>&#x26A0;&#xFE0F; Rischio canone fisso d'inverno (richiede approccio ibrido).</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-100 font-bold text-xs text-sky-600">
+            Consigliato per: Primi passi / Scaling rapido
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3 flex flex-col justify-between">
+          <div>
+            <span class="bg-indigo-100 text-indigo-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded">Modello B</span>
+            <h4 class="font-bold text-gray-900 text-base mt-1">Property Management (Gestione Terzi)</h4>
+            <p class="text-xs text-gray-600 mt-2 leading-relaxed">
+              Gestire gli immobili di altri proprietari applicando una commissione sul fatturato lordo (18% - 25%).
+            </p>
+            <ul class="mt-3 text-xs space-y-1 text-gray-600">
+              <li>&#x2705; Rischio immobiliare zero (nessun canone da pagare).</li>
+              <li>&#x2705; Facile acquisizione grazie al panico dei proprietari per il CIN.</li>
+              <li>&#x26A0;&#xFE0F; Richiede struttura operativa aziendale (P.IVA ATECO 68.32).</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-100 font-bold text-xs text-indigo-600">
+            Consigliato per: Operatori senza capitali di rischio
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3 flex flex-col justify-between">
+          <div>
+            <span class="bg-emerald-100 text-emerald-800 text-[10px] uppercase font-bold px-2 py-0.5 rounded">Modello C</span>
+            <h4 class="font-bold text-gray-900 text-base mt-1">Buy-to-Let (Acquisto a Reddito)</h4>
+            <p class="text-xs text-gray-600 mt-2 leading-relaxed">
+              Acquisto diretto dell'immobile, ristrutturazione e messa a reddito turistica o ibrida.
+            </p>
+            <ul class="mt-3 text-xs space-y-1 text-gray-600">
+              <li>&#x2705; Protezione del capitale e rivalutazione patrimoniale (+15% entro Nuova Pescara 2027).</li>
+              <li>&#x2705; Accesso a Cedolare Secca al 21% sul 1° immobile.</li>
+              <li>&#x26A0;&#xFE0F; CAPEX elevato (120.000€ - 160.000€).</li>
+            </ul>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-100 font-bold text-xs text-emerald-600">
+            Consigliato per: Investitori patrimoniali
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Target, Immobili & Differenziazione -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+          <h3 class="font-bold text-gray-900 text-base border-b border-gray-100 pb-2">&#x1F3AF; Target Profittevole & Tipologia Immobile Sweet-Spot</h3>
+          
+          <div class="space-y-3 text-xs">
+            <div>
+              <strong class="text-gray-900 block font-semibold text-sm">Target Prevalente: Turisti Esteri low-cost + Smart Workers & Cicloturisti</strong>
+              <p class="text-gray-600 mt-0.5">
+                Il target estero vola con Ryanair, rimane 3.34 notti in media e viaggia anche ad aprile, maggio e settembre, riducendo l'impatto della bassa stagione.
+              </p>
+            </div>
+
+            <div>
+              <strong class="text-gray-900 block font-semibold text-sm">Immobile Ideale: Bilocale (50-60 mq) a Pescara Portanuova</strong>
+              <p class="text-gray-600 mt-0.5">
+                Portanuova ha prezzi di acquisto contenuti (~2.071 €/mq contro i 2.869 €/mq del Centro) ed è vicina all'Università e al Tribunale, consentendo una strategia ibrida (studenti/business d'inverno, turisti d'estate).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+          <h3 class="font-bold text-gray-900 text-base border-b border-gray-100 pb-2">&#x1F4A1; Punti Differenzianti (USP) & Canali di Acquisizione</h3>
+          
+          <div class="space-y-3 text-xs">
+            <div>
+              <strong class="text-gray-900 block font-semibold text-sm">Fattori Unici per Battere la Concorrenza:</strong>
+              <ul class="list-disc list-inside text-gray-600 mt-1 space-y-0.5">
+                <li><strong>Self Check-in 24/7</strong> con tastierino e domotica.</li>
+                <li><strong>Setup Bike Friendly:</strong> Deposito protetto per e-bike per i clienti della Via Verde.</li>
+                <li><strong>Posto auto privato o pass parcheggio riservato.</strong></li>
+                <li><strong>Design "Instagrammabile":</strong> Home staging professionale con elementi locali.</li>
+              </ul>
+            </div>
+
+            <div>
+              <strong class="text-gray-900 block font-semibold text-sm">Canali Acquisizione Ospiti:</strong>
+              <p class="text-gray-600 mt-0.5">
+                Dominio OTA iniziale (Airbnb + Booking.com) unito ad un sito web direct-booking con sconti del 10% per pernottamenti ricorrenti di smart worker o trasfertisti aziendali.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- SECTION 6: PIANO D'AZIONE -->
+    <section id="sec-piano" class="content-section space-y-6 hidden">
+      
+      <!-- Intro Paragraph -->
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-1">Piano d'Azione Operativo per l'Ingresso nel Mercato</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">
+          Ecco le 5 mosse chiave sequenziali da compiere nel 2025 per entrare sul mercato turistico di Pescara, minimizzare i tempi di vacancy, azzerare i rischi legali/normativi e massimizzare il rendimento d'esercizio.
+        </p>
+      </div>
+
+      <!-- Action Plan Step Cards -->
+      <div class="space-y-4">
+        
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start space-x-4">
+          <div class="w-9 h-9 rounded-full bg-sky-600 text-white font-black flex items-center justify-center text-sm shrink-0">
+            1
+          </div>
+          <div class="space-y-1 text-xs">
+            <h4 class="font-bold text-gray-900 text-sm">Verifica Burocratica & Ottenimento CIN (Codice Identificativo Nazionale)</h4>
+            <p class="text-gray-600 leading-relaxed">
+              Verifica che il regolamento condominiale non contenga divieti espressi di affitto breve contrattualmente trascritti. Installa i dispositivi di sicurezza obbligatori dal 2025 (estintore e rilevatore monossido) e richiedi il CIN sulla BDSR della Regione Abruzzo per evitare sanzioni fino a 8.000€.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start space-x-4">
+          <div class="w-9 h-9 rounded-full bg-sky-600 text-white font-black flex items-center justify-center text-sm shrink-0">
+            2
+          </div>
+          <div class="space-y-1 text-xs">
+            <h4 class="font-bold text-gray-900 text-sm">Acquisizione Immobili a Pescara Portanuova o Riviera</h4>
+            <p class="text-gray-600 leading-relaxed">
+              Seleziona bilocali (4 posti letto) a Portanuova per beneficiare del minor costo di acquisto/canone. Assicurati che l'immobile includa un balcone o uno spazio per e-bike. Negozia contratti con clausola di subaffitto autorizzato per iscritto.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start space-x-4">
+          <div class="w-9 h-9 rounded-full bg-sky-600 text-white font-black flex items-center justify-center text-sm shrink-0">
+            3
+          </div>
+          <div class="space-y-1 text-xs">
+            <h4 class="font-bold text-gray-900 text-sm">Home Staging, Servizio Fotografico & Automazione Domotica</h4>
+            <p class="text-gray-600 leading-relaxed">
+              Allestisci l'appartamento con tonalità fresche marine e postazione lavoro con Fibra FTTH. Scatta foto professionali e installa Serrature Intelligenti (Smart Lock) per consentire il self check-in h24 agli arrivi con i voli serali da Ryanair.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start space-x-4">
+          <div class="w-9 h-9 rounded-full bg-sky-600 text-white font-black flex items-center justify-center text-sm shrink-0">
+            4
+          </div>
+          <div class="space-y-1 text-xs">
+            <h4 class="font-bold text-gray-900 text-sm">Impostazione Revenue Dinamico & Multi-Channel Sync</h4>
+            <p class="text-gray-600 leading-relaxed">
+              Collega il tuo annuncio a software di pricing dinamico (PriceLabs / Beyond) per aggiornare automaticamente i listini in base ad eventi e meteo. Imposta soggiorni minimi di 4-7 notti ad agosto e rimuovi restrizioni nei mesi invernali.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-start space-x-4">
+          <div class="w-9 h-9 rounded-full bg-sky-600 text-white font-black flex items-center justify-center text-sm shrink-0">
+            5
+          </div>
+          <div class="space-y-1 text-xs">
+            <h4 class="font-bold text-gray-900 text-sm">Strategia Ibrida Stagionale & Partnership Locali</h4>
+            <p class="text-gray-600 leading-relaxed">
+              Attiva convenzioni con noleggi di e-bike lungo la Via Verde, lidi balneari locali e ristoranti tipici. Tra novembre e marzo, converti l'offerta in locazione transitoria universitaria o business per garantire un flusso di cassa costante a rischio zero.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- JavaScript for Navigation & Charts -->
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('hidden');
+    }
+
+    function showSection(sectionId) {
+      const sections = document.querySelectorAll('.content-section');
+      sections.forEach(sec => sec.classList.add('hidden'));
+
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.classList.remove('nav-active');
+        link.classList.add('text-gray-600', 'hover:bg-gray-100', 'hover:text-gray-900');
+      });
+
+      const targetSec = document.getElementById('sec-' + sectionId);
+      if(targetSec) {
+        targetSec.classList.remove('hidden');
+      }
+
+      const targetNav = document.getElementById('nav-' + sectionId);
+      if(targetNav) {
+        targetNav.classList.add('nav-active');
+        targetNav.classList.remove('text-gray-600', 'hover:bg-gray-100', 'hover:text-gray-900');
+      }
+
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      if(sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.classList.add('hidden');
+      }
+
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    const competitiveData = {
+      all: {
+        prezziLabels: ['Bassa Stagione', 'Media Stagione', 'Alta Stagione (Lug/Ago)'],
+        prezziData: [65, 110, 210],
+        occupazioneLabels: ['Media Annuale', 'Mesi Invernale', 'Picco Estivo'],
+        occupazioneData: [58, 35, 88]
+      },
+      affittacamere: {
+        prezziLabels: ['Bassa Stagione', 'Media Stagione', 'Alta Stagione'],
+        prezziData: [45, 75, 120],
+        occupazioneLabels: ['Media Annuale', 'Mesi Invernale', 'Picco Estivo'],
+        occupazioneData: [52, 30, 82]
+      },
+      bilocale: {
+        prezziLabels: ['Bassa Stagione', 'Media Stagione', 'Alta Stagione'],
+        prezziData: [60, 95, 175],
+        occupazioneLabels: ['Media Annuale', 'Mesi Invernale', 'Picco Estivo'],
+        occupazioneData: [64, 42, 92]
+      },
+      trilocale: {
+        prezziLabels: ['Bassa Stagione', 'Media Stagione', 'Alta Stagione'],
+        prezziData: [85, 135, 240],
+        occupazioneLabels: ['Media Annuale', 'Mesi Invernale', 'Picco Estivo'],
+        occupazioneData: [56, 32, 89]
+      },
+      quadrilocale: {
+        prezziLabels: ['Bassa Stagione', 'Media Stagione', 'Alta Stagione'],
+        prezziData: [110, 180, 310],
+        occupazioneLabels: ['Media Annuale', 'Mesi Invernale', 'Picco Estivo'],
+        occupazioneData: [48, 25, 85]
+      },
+      villa: {
+        prezziLabels: ['Bassa Stagione', 'Media Stagione', 'Alta Stagione'],
+        prezziData: [180, 320, 580],
+        occupazioneLabels: ['Media Annuale', 'Mesi Invernale', 'Picco Estivo'],
+        occupazioneData: [42, 18, 80]
+      }
+    };
+
+    let seasonalityChartObj = null;
+    let provenienzaChartObj = null;
+    let offertaChartObj = null;
+    let prezziChartObj = null;
+    let occupazioneChartObj = null;
+
+    function initCharts() {
+      const ctxSeason = document.getElementById('seasonalityChart').getContext('2d');
+      seasonalityChartObj = new Chart(ctxSeason, {
+        type: 'line',
+        data: {
+          labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
+          datasets: [
+            {
+              label: 'Tasso Occupazione (%)',
+              data: [25, 28, 35, 48, 58, 68, 82, 92, 62, 42, 30, 34],
+              borderColor: '#0284c7',
+              backgroundColor: 'rgba(2, 132, 199, 0.1)',
+              yAxisID: 'yOcc',
+              tension: 0.3,
+              fill: true,
+              borderWidth: 3
+            },
+            {
+              label: 'ADR Medio (€)',
+              data: [65, 68, 75, 95, 110, 140, 185, 210, 125, 85, 65, 75],
+              borderColor: '#d97706',
+              backgroundColor: 'transparent',
+              yAxisID: 'yAdr',
+              tension: 0.3,
+              borderWidth: 2,
+              borderDash: [5, 5]
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            yOcc: {
+              type: 'linear',
+              position: 'left',
+              title: { display: true, text: 'Occupazione (%)' },
+              min: 0,
+              max: 100
+            },
+            yAdr: {
+              type: 'linear',
+              position: 'right',
+              title: { display: true, text: 'ADR (€)' },
+              grid: { drawOnChartArea: false }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      const ctxProv = document.getElementById('provenienzaChart').getContext('2d');
+      provenienzaChartObj = new Chart(ctxProv, {
+        type: 'doughnut',
+        data: {
+          labels: ['Mercato Italiano (Lazio, Campania, ecc.)', 'Mercato Estero (Polonia, Germania, Albania, UK)'],
+          datasets: [{
+            data: [65, 35],
+            backgroundColor: ['#0284c7', '#10b981'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+
+      const ctxOff = document.getElementById('offertaChart').getContext('2d');
+      offertaChartObj = new Chart(ctxOff, {
+        type: 'bar',
+        data: {
+          labels: ['Appartamenti Interi', 'B&B e Affittacamere', 'Hotel & Resort', 'Campeggi / Altro'],
+          datasets: [{
+            label: 'Quota di Mercato (%)',
+            data: [62, 23, 12, 3],
+            backgroundColor: ['#0369a1', '#0284c7', '#94a3b8', '#cbd5e1'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, max: 100 },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      const ctxPrezzi = document.getElementById('prezziChart').getContext('2d');
+      prezziChartObj = new Chart(ctxPrezzi, {
+        type: 'bar',
+        data: {
+          labels: competitiveData.all.prezziLabels,
+          datasets: [{
+            label: 'Prezzo Medio per Notte (€)',
+            data: competitiveData.all.prezziData,
+            backgroundColor: '#0284c7',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      const ctxOcc = document.getElementById('occupazioneChart').getContext('2d');
+      occupazioneChartObj = new Chart(ctxOcc, {
+        type: 'bar',
+        data: {
+          labels: competitiveData.all.occupazioneLabels,
+          datasets: [{
+            label: 'Tasso Occupazione (%)',
+            data: competitiveData.all.occupazioneData,
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, max: 100 },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function updateCompetitiveCharts() {
+      const selector = document.getElementById('propertyTypeSelector');
+      const val = selector.value;
+      const dataObj = competitiveData[val] || competitiveData.all;
+
+      if(prezziChartObj) {
+        prezziChartObj.data.labels = dataObj.prezziLabels;
+        prezziChartObj.data.datasets[0].data = dataObj.prezziData;
+        prezziChartObj.update();
